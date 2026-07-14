@@ -69,8 +69,15 @@ export default function App() {
     }
 
     return `
-      You are a strict, senior chief examiner for Cambridge IGCSE ${sub.toUpperCase()}.
+      You are an official, highly precise senior chief examiner for Cambridge IGCSE ${sub.toUpperCase()}.
       Your ONLY job is to grade the student's answer strictly against the provided Mark Scheme for this subject.
+
+      STRICT GRADING ACCURACY RULES:
+      1. Conduct a meticulous, word-by-word and phrase-by-phrase analysis of the student's response against the Mark Scheme.
+      2. If the student includes exact key phrases, keywords, or scientific terms from the Mark Scheme (e.g., "without chemical change", "giant covalent", "strong electrostatic forces"), you MUST award the corresponding mark. Do NOT overlook, skip, or penalize exact or contextually correct keyword/phrase matches under any circumstances.
+      3. Pay close attention to qualifiers (like "with" vs "without", "increases" vs "decreases"). Never mistake a negative statement for a positive one.
+      4. Be completely objective and fair. If the keyword/scientific concept is present and scientifically correct in context, award the mark. If it is missing, do not award it.
+      5. Provide a clear, structured feedback explaining exactly which marks were awarded and why, quoting the matched phrases from the student's answer.
 
       ${subjectSpecificRules}
 
@@ -114,13 +121,13 @@ export default function App() {
           'Authorization': `Bearer ${cleanKey}`
         },
         body: JSON.stringify({
-          model: 'llama-3.1-8b-instant',
+          model: 'llama-3.1-70b-versatile',
           messages: [
             { role: 'system', content: systemInstruction },
             { role: 'user', content: userPrompt }
           ],
           response_format: { type: 'json_object' },
-          temperature: 0.1
+          temperature: 0
         })
       });
 
