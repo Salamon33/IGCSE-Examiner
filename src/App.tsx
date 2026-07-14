@@ -121,7 +121,7 @@ export default function App() {
           'Authorization': `Bearer ${cleanKey}`
         },
         body: JSON.stringify({
-          model: 'llama-3.1-70b-versatile',
+          model: 'llama-3.3-70b-versatile', // تم تحديث الموديل هنا إلى الإصدار الأحدث والمدعوم حالياً
           messages: [
             { role: 'system', content: systemInstruction },
             { role: 'user', content: userPrompt }
