@@ -38,32 +38,25 @@ export default function App() {
   const generateSystemInstruction = (sub: SubjectType, examBoard: BoardType): string => {
     let boardSpecificRules = '';
 
-    // === قواعد CAMBRIDGE الرسمية للعلوم ===
-    if (examBoard === 'cambridge' && sub !== 'math') {
+    // === قواعد CAMBRIDGE الرسمية ===
+    if (examBoard === 'cambridge') {
       boardSpecificRules = `
-      OFFICIAL CAMBRIDGE (CIE) SCIENCE MARKING PRINCIPLES:
-      1. POSITIVE MARKING: Award marks for correct/valid answers. DO NOT deduct marks for errors or omissions. Award whole marks only.
+      OFFICIAL CAMBRIDGE (CIE) MARKING PRINCIPLES:
+      1. POSITIVE MARKING: Award marks for correct/valid answers. DO NOT deduct marks for errors or omissions.
       2. CONTRADICTIONS: Do not choose between contradictory statements. If a correct statement is contradicted within the SAME student response, DO NOT award the mark for that point.
-      3. SPELLING: Accept incorrect spellings UNLESS it causes confusion with another syllabus term (e.g., ethane/ethene, refraction/reflection, glucagon/glycogen).
-      4. ECF (Error Carried Forward): Apply ECF if an incorrect answer is subsequently used in a scientifically correct way in calculations.
-      5. ABBREVIATIONS IN MARK SCHEME:
-         - ';' separates distinct marking points (usually 1 mark each).
-         - '/' indicates alternative valid responses for the SAME mark.
-         - 'R' = STRICTLY REJECT the response.
-         - 'A' = Accept the response.
-         - 'I' = Ignore the response (do not award, do not penalize).
-         - 'ora' = "or reverse argument" is acceptable.
-         - 'underline' (or underlined words) = The exact word MUST be used by the candidate (grammatical variants accepted).
-         - '( )' = Words in brackets set the context and are NOT required for the candidate to score the mark.
-      6. CALCULATIONS: Full credit for correct final answer even without working, unless 'show working' is explicitly requested. Missing/incorrect units mean the final mark is lost unless stated otherwise.
-      7. EQUATIONS: Multiples/fractions of coefficients are accepted. Ignore state symbols unless specifically requested.
+      3. SPELLING: Accept incorrect spellings UNLESS it causes confusion with another syllabus term.
+      4. ECF (Error Carried Forward): Apply ECF if an incorrect answer is subsequently used correctly in calculations.
+      5. ABBREVIATIONS IN MARK SCHEME: ';' separates marking points. '/' indicates alternatives. 'R' = REJECT. 'A' = Accept. 'I' = Ignore. 'ora' = or reverse argument. 'underline' = exact word MUST be used.
       `;
     } 
-    // مكان مخصص لإضافة قواعد Edexcel لاحقاً
-    else if (examBoard === 'edexcel' && sub !== 'math') {
+    // === قواعد EDEXCEL الرسمية ===
+    else if (examBoard === 'edexcel') {
       boardSpecificRules = `
-      OFFICIAL EDEXCEL SCIENCE MARKING PRINCIPLES:
-      (Strict adherence to Edexcel specific mark scheme layout and rules).
+      OFFICIAL EDEXCEL GENERAL MARKING GUIDANCE:
+      1. POSITIVE MARKING: Apply mark schemes positively. Reward candidates for what they have shown they can do rather than penalising for omissions.
+      2. OBJECTIVE GRADING: All candidates receive the same treatment. Award full marks if deserved (matches the mark scheme). Award zero marks if the candidate's response is not worthy of credit. Do not limit achievement.
+      3. STRICT ADHERENCE: Mark strictly according to the mark scheme, not according to personal perception of grade boundaries.
+      4. CROSSED OUT WORK: Crossed-out work should be marked UNLESS the candidate has replaced it with an alternative response.
       `;
     }
 
@@ -203,11 +196,10 @@ export default function App() {
           <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: `1px solid ${currentTheme.primary}`, outline: 'none' }} />
         </div>
 
-        {/* قائمة اختيار الـ Exam Board الجديدة */}
         <div style={{ flex: '1', minWidth: '130px', background: '#f8f9fa', padding: '15px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>🏛️ Exam Board:</label>
           <select value={board} onChange={(e) => { setBoard(e.target.value as BoardType); setResult(null); }} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', fontWeight: 'bold', outline: 'none', cursor: 'pointer' }}>
-            <option value="cambridge">Cambridge</option>
+            <option value="cambridge">Cambridge (CIE)</option>
             <option value="edexcel">Edexcel</option>
           </select>
         </div>
@@ -215,10 +207,10 @@ export default function App() {
         <div style={{ flex: '1', minWidth: '150px', background: '#f8f9fa', padding: '15px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>📚 Subject:</label>
           <select value={subject} onChange={(e) => { setSubject(e.target.value as SubjectType); setResult(null); }} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', fontWeight: 'bold', color: currentTheme.primary, outline: 'none', cursor: 'pointer' }}>
-            <option value="biology">Biology (0610)</option>
-            <option value="chemistry">Chemistry (0620)</option>
-            <option value="physics">Physics (0625)</option>
-            <option value="math">Mathematics (0580)</option>
+            <option value="biology">Biology</option>
+            <option value="chemistry">Chemistry</option>
+            <option value="physics">Physics</option>
+            <option value="math">Mathematics</option>
           </select>
         </div>
       </div>
