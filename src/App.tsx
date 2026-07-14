@@ -9,7 +9,10 @@ interface GradingResult {
   tip: string;
 }
 
-type SubjectType = 'biology' | 'chemistry' | 'physics' | 'math';
+type SubjectType = 
+  | 'biology' | 'chemistry' | 'physics' | 'math' 
+  | 'as_biology' | 'as_math_p1' | 'as_math_p2' | 'as_math_m1' | 'as_math_s1';
+
 type BoardType = 'cambridge' | 'edexcel';
 
 export default function App() {
@@ -23,13 +26,53 @@ export default function App() {
   const [error, setError] = useState('');
   const [result, setResult] = useState<GradingResult | null>(null);
 
-  const getThemeColors = (sub: SubjectType) => {
-    switch (sub) {
-      case 'biology': return { primary: '#2e7d32', lightBg: '#e8f5e9', border: '#a5d6a7', label: '🧬 Biology' };
-      case 'chemistry': return { primary: '#d84315', lightBg: '#fbe9e7', border: '#ffab91', label: '🧪 Chemistry' };
-      case 'physics': return { primary: '#1565c0', lightBg: '#e3f2fd', border: '#90caf9', label: '⚡ Physics' };
-      case 'math': return { primary: '#6a1b9a', lightBg: '#f3e5f5', border: '#ce93d8', label: '📐 Mathematics' };
+  // تعريف قوائم المواد لكل جهة اختبار ديناميكياً
+  const cambridgeSubjects = [
+    { id: 'biology', label: '🧬 Biology' },
+    { id: 'chemistry', label: '🧪 Chemistry' },
+    { id: 'physics', label: '⚡ Physics' },
+    { id: 'math', label: '📐 Mathematics' },
+  ];
+
+  const edexcelSubjects = [
+    { id: 'biology', label: '🧬 Biology (IGCSE)' },
+    { id: 'chemistry', label: '🧪 Chemistry (IGCSE)' },
+    { id: 'physics', label: '⚡ Physics (IGCSE)' },
+    { id: 'math', label: '📐 Mathematics (IGCSE)' },
+    { id: 'as_biology', label: '🧬 AS Biology' },
+    { id: 'as_math_p1', label: '📐 AS Maths P1 (Pure 1)' },
+    { id: 'as_math_p2', label: '📐 AS Maths P2 (Pure 2)' },
+    { id: 'as_math_m1', label: '📐 AS Maths M1 (Mechanics 1)' },
+    { id: 'as_math_s1', label: '📐 AS Maths S1 (Statistics 1)' },
+  ];
+
+  // دالة لتغيير البورد وتصفية المادة المختارة تلقائياً لتجنب الأخطاء
+  const handleBoardChange = (selectedBoard: BoardType) => {
+    setBoard(selectedBoard);
+    setResult(null);
+    if (selectedBoard === 'cambridge') {
+      // إذا تم اختيار كامبريدج، يتم إرجاع المادة لـ Biology العادية لأن مواد الـ AS ليست متاحة لها
+      const validCie = ['biology', 'chemistry', 'physics', 'math'];
+      if (!validCie.includes(subject)) {
+        setSubject('biology');
+      }
     }
+  };
+
+  const getThemeColors = (sub: SubjectType) => {
+    if (sub.includes('math')) {
+      return { primary: '#6a1b9a', lightBg: '#f3e5f5', border: '#ce93d8' };
+    }
+    if (sub.includes('biology')) {
+      return { primary: '#2e7d32', lightBg: '#e8f5e9', border: '#a5d6a7' };
+    }
+    if (sub === 'chemistry') {
+      return { primary: '#d84315', lightBg: '#fbe9e7', border: '#ffab91' };
+    }
+    if (sub === 'physics') {
+      return { primary: '#1565c0', lightBg: '#e3f2fd', border: '#90caf9' };
+    }
+    return { primary: '#37474f', lightBg: '#eceff1', border: '#b0bec5' };
   };
 
   const currentTheme = getThemeColors(subject);
@@ -61,7 +104,37 @@ export default function App() {
     }
 
     let subjectSpecificRules = '';
-    if (sub === 'biology') {
+    
+    // قواعد مواد الـ AS Maths الجديدة من إيديكسل
+    if (sub.startsWith('as_math_')) {
+      let moduleFocus = '';
+      if (sub === 'as_math_p1') moduleFocus = 'Pure Mathematics 1 (Algebra, Coordinate Geometry, Sequences, Trigonometry, Integration/Differentiation basics).';
+      if (sub === 'as_math_p2') moduleFocus = 'Pure Mathematics 2 (Proof, Algebra/Functions, Coordinate Geometry in (x,y) plane, Sequences/Series, Exponentials/Logarithms, Trigonometry, Differentiation/Integration).';
+      if (sub === 'as_math_m1') moduleFocus = 'Mechanics 1 (Mathematical Modelling, Kinematics of a particle, Dynamics of a particle moving in a straight line, Statics of a particle, Moments). Ensure physical principles like F = ma, SUVAT, and resolving forces are applied correctly.';
+      if (sub === 'as_math_s1') moduleFocus = 'Statistics 1 (Mathematical Modelling, Representation and summary of data, Probability, Correlation and regression, Discrete random variables, Normal distribution).';
+
+      subjectSpecificRules = `
+        - Focus Module: EDEXCEL AS-LEVEL MATHS - ${moduleFocus}
+        - Strictly apply Edexcel Math Marking Guideline definitions:
+          * 'M' marks (Method marks) are awarded for a correct method applied to appropriate numbers.
+          * 'A' marks (Accuracy marks) are accuracy marks, and cannot be awarded unless the relevant 'M' mark has been earned.
+          * 'B' marks are unconditional accuracy marks (independent of 'M' marks).
+          * In the 'keywords_analysis' response field, clearly break down: "Awarded Marks (M/A/B)" and "Missed Marks/Steps".
+      `;
+    } 
+    // قواعد الـ AS Biology الجديدة من إيديكسل
+    else if (sub === 'as_biology') {
+      subjectSpecificRules = `
+        - Focus Module: EDEXCEL AS-LEVEL BIOLOGY.
+        - Pay meticulous attention to biological terminology and exact wording (e.g., active site, condensation reaction, ester bonds, tertiary structure).
+        - Focus on command words:
+          * 'Describe': Candidate must state the points of a topic / give characteristics.
+          * 'Explain': Candidate must provide scientific reasoning/justification.
+        - Pay close attention to experimental questions (CPACs/practical skills) including control variables, validity, and reliability.
+      `;
+    }
+    // بقية المواد الأساسية
+    else if (sub === 'biology') {
       subjectSpecificRules = `- Apply strict keyword rules (e.g., 'denatured' not 'killed' for enzymes).`;
     } else if (sub === 'chemistry') {
       subjectSpecificRules = `- Pay extreme attention to chemical formulas, balanced equations, and state symbols if requested.`;
@@ -75,7 +148,7 @@ export default function App() {
     }
 
     return `
-      You are an official, highly precise senior chief examiner for ${examBoard.toUpperCase()} IGCSE ${sub.toUpperCase()}.
+      You are an official, highly precise senior chief examiner for ${examBoard.toUpperCase()} IGCSE/AS-Level ${sub.toUpperCase()}.
       Your ONLY job is to grade the student's answer strictly against the provided Mark Scheme.
 
       ${boardSpecificRules}
@@ -93,7 +166,7 @@ export default function App() {
       {
         "score": "X/Total", 
         "summary": "Precise grading summary based on examiner guidelines", 
-        "keywords_analysis": "Detail which critical keywords/steps were present and which were missing", 
+        "keywords_analysis": "Detail which critical keywords/steps/marks were present and which were missing", 
         "verdict": "Syllabus understanding check", 
         "tip": "One clear constructive tip to help them get full marks next time"
       }
@@ -183,6 +256,9 @@ export default function App() {
     return String(data);
   };
 
+  // اختيار قائمة المواد بناءً على البورد الحالي
+  const activeSubjectList = board === 'cambridge' ? cambridgeSubjects : edexcelSubjects;
+
   return (
     <div style={{ fontFamily: 'system-ui, sans-serif', maxWidth: '750px', margin: '30px auto', padding: '25px', backgroundColor: '#ffffff', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
       <header style={{ textAlign: 'center', marginBottom: '25px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>
@@ -198,19 +274,18 @@ export default function App() {
 
         <div style={{ flex: '1', minWidth: '130px', background: '#f8f9fa', padding: '15px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>🏛️ Exam Board:</label>
-          <select value={board} onChange={(e) => { setBoard(e.target.value as BoardType); setResult(null); }} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', fontWeight: 'bold', outline: 'none', cursor: 'pointer' }}>
+          <select value={board} onChange={(e) => handleBoardChange(e.target.value as BoardType)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', fontWeight: 'bold', outline: 'none', cursor: 'pointer' }}>
             <option value="cambridge">Cambridge (CIE)</option>
             <option value="edexcel">Edexcel</option>
           </select>
         </div>
 
-        <div style={{ flex: '1', minWidth: '150px', background: '#f8f9fa', padding: '15px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
+        <div style={{ flex: '1', minWidth: '180px', background: '#f8f9fa', padding: '15px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>📚 Subject:</label>
           <select value={subject} onChange={(e) => { setSubject(e.target.value as SubjectType); setResult(null); }} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', fontWeight: 'bold', color: currentTheme.primary, outline: 'none', cursor: 'pointer' }}>
-            <option value="biology">Biology</option>
-            <option value="chemistry">Chemistry</option>
-            <option value="physics">Physics</option>
-            <option value="math">Mathematics</option>
+            {activeSubjectList.map((sub) => (
+              <option key={sub.id} value={sub.id}>{sub.label}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -243,7 +318,7 @@ export default function App() {
             <div style={{ background: currentTheme.lightBg, borderLeft: `5px solid ${currentTheme.primary}`, padding: '15px', borderRadius: '6px' }}><strong>🏆 Score:</strong> <span style={{ fontSize: '1.3rem', fontWeight: 'bold' }}>{result.score}</span></div>
             <div style={{ background: '#f1f3f4', borderLeft: '5px solid #5f6368', padding: '15px', borderRadius: '6px' }}><strong>📝 Summary:</strong> {result.summary}</div>
             <div style={{ background: '#e6f4ea', borderLeft: '5px solid #137333', padding: '15px', borderRadius: '6px' }}>
-              <strong>🔍 {subject === 'math' ? 'Steps Analysis' : 'Keyword Analysis'}:</strong>
+              <strong>🔍 {subject.includes('math') ? 'Steps & Marks Analysis' : 'Keyword Analysis'}:</strong>
               <div style={{ marginTop: '8px' }}>{renderKeywordsAnalysis(result.keywords_analysis)}</div>
             </div>
             <div style={{ background: '#fef7e0', borderLeft: '5px solid #b06000', padding: '15px', borderRadius: '6px' }}><strong>⚠️ Verdict:</strong> {result.verdict}</div>
