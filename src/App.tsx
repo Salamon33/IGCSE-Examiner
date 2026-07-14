@@ -46,12 +46,10 @@ export default function App() {
     { id: 'as_math_s1', label: '📐 AS Maths S1 (Statistics 1)' },
   ];
 
-  // دالة لتغيير البورد وتصفية المادة المختارة تلقائياً لتجنب الأخطاء
   const handleBoardChange = (selectedBoard: BoardType) => {
     setBoard(selectedBoard);
     setResult(null);
     if (selectedBoard === 'cambridge') {
-      // إذا تم اختيار كامبريدج، يتم إرجاع المادة لـ Biology العادية لأن مواد الـ AS ليست متاحة لها
       const validCie = ['biology', 'chemistry', 'physics', 'math'];
       if (!validCie.includes(subject)) {
         setSubject('biology');
@@ -60,28 +58,18 @@ export default function App() {
   };
 
   const getThemeColors = (sub: SubjectType) => {
-    if (sub.includes('math')) {
-      return { primary: '#6a1b9a', lightBg: '#f3e5f5', border: '#ce93d8' };
-    }
-    if (sub.includes('biology')) {
-      return { primary: '#2e7d32', lightBg: '#e8f5e9', border: '#a5d6a7' };
-    }
-    if (sub === 'chemistry') {
-      return { primary: '#d84315', lightBg: '#fbe9e7', border: '#ffab91' };
-    }
-    if (sub === 'physics') {
-      return { primary: '#1565c0', lightBg: '#e3f2fd', border: '#90caf9' };
-    }
+    if (sub.includes('math')) return { primary: '#6a1b9a', lightBg: '#f3e5f5', border: '#ce93d8' };
+    if (sub.includes('biology')) return { primary: '#2e7d32', lightBg: '#e8f5e9', border: '#a5d6a7' };
+    if (sub === 'chemistry') return { primary: '#d84315', lightBg: '#fbe9e7', border: '#ffab91' };
+    if (sub === 'physics') return { primary: '#1565c0', lightBg: '#e3f2fd', border: '#90caf9' };
     return { primary: '#37474f', lightBg: '#eceff1', border: '#b0bec5' };
   };
 
   const currentTheme = getThemeColors(subject);
 
-  // دالة توليد الـ System Instruction الصارمة ديناميكياً
   const generateSystemInstruction = (sub: SubjectType, examBoard: BoardType): string => {
     let boardSpecificRules = '';
 
-    // === قواعد CAMBRIDGE الرسمية ===
     if (examBoard === 'cambridge') {
       boardSpecificRules = `
       OFFICIAL CAMBRIDGE (CIE) MARKING PRINCIPLES:
@@ -89,63 +77,62 @@ export default function App() {
       2. CONTRADICTIONS: Do not choose between contradictory statements. If a correct statement is contradicted within the SAME student response, DO NOT award the mark for that point.
       3. SPELLING: Accept incorrect spellings UNLESS it causes confusion with another syllabus term.
       4. ECF (Error Carried Forward): Apply ECF if an incorrect answer is subsequently used correctly in calculations.
-      5. ABBREVIATIONS IN MARK SCHEME: ';' separates marking points. '/' indicates alternatives. 'R' = REJECT. 'A' = Accept. 'I' = Ignore. 'ora' = or reverse argument. 'underline' = exact word MUST be used.
+      5. ABBREVIATIONS: ';' separates marking points. '/' indicates alternatives. 'R' = REJECT. 'A' = Accept. 'I' = Ignore. 'ora' = or reverse argument. 'underline' = exact word MUST be used.
       `;
     } 
-    // === قواعد EDEXCEL الرسمية ===
     else if (examBoard === 'edexcel') {
       boardSpecificRules = `
       OFFICIAL EDEXCEL GENERAL MARKING GUIDANCE:
       1. POSITIVE MARKING: Apply mark schemes positively. Reward candidates for what they have shown they can do rather than penalising for omissions.
-      2. OBJECTIVE GRADING: All candidates receive the same treatment. Award full marks if deserved (matches the mark scheme). Award zero marks if the candidate's response is not worthy of credit. Do not limit achievement.
-      3. STRICT ADHERENCE: Mark strictly according to the mark scheme, not according to personal perception of grade boundaries.
-      4. CROSSED OUT WORK: Crossed-out work should be marked UNLESS the candidate has replaced it with an alternative response.
+      2. OBJECTIVE GRADING: All candidates receive the same treatment. Award full marks if deserved. Award zero marks if the candidate's response is not worthy of credit.
+      3. CROSSED OUT WORK: Crossed-out work should be marked UNLESS the candidate has replaced it with an alternative response.
       `;
     }
 
     let subjectSpecificRules = '';
     
-    // قواعد مواد الـ AS Maths الجديدة من إيديكسل
-    if (sub.startsWith('as_math_')) {
-      let moduleFocus = '';
-      if (sub === 'as_math_p1') moduleFocus = 'Pure Mathematics 1 (Algebra, Coordinate Geometry, Sequences, Trigonometry, Integration/Differentiation basics).';
-      if (sub === 'as_math_p2') moduleFocus = 'Pure Mathematics 2 (Proof, Algebra/Functions, Coordinate Geometry in (x,y) plane, Sequences/Series, Exponentials/Logarithms, Trigonometry, Differentiation/Integration).';
-      if (sub === 'as_math_m1') moduleFocus = 'Mechanics 1 (Mathematical Modelling, Kinematics of a particle, Dynamics of a particle moving in a straight line, Statics of a particle, Moments). Ensure physical principles like F = ma, SUVAT, and resolving forces are applied correctly.';
-      if (sub === 'as_math_s1') moduleFocus = 'Statistics 1 (Mathematical Modelling, Representation and summary of data, Probability, Correlation and regression, Discrete random variables, Normal distribution).';
-
+    // قواعد P1 و P2 الحصرية للرياضيات البحتة بناءً على دليلك
+    if (sub === 'as_math_p1' || sub === 'as_math_p2') {
+      const moduleFocus = sub === 'as_math_p1' ? 'Pure Mathematics 1' : 'Pure Mathematics 2';
       subjectSpecificRules = `
-        - Focus Module: EDEXCEL AS-LEVEL MATHS - ${moduleFocus}
-        - Strictly apply Edexcel Math Marking Guideline definitions:
-          * 'M' marks (Method marks) are awarded for a correct method applied to appropriate numbers.
-          * 'A' marks (Accuracy marks) are accuracy marks, and cannot be awarded unless the relevant 'M' mark has been earned.
-          * 'B' marks are unconditional accuracy marks (independent of 'M' marks).
-          * In the 'keywords_analysis' response field, clearly break down: "Awarded Marks (M/A/B)" and "Missed Marks/Steps".
+        - Focus Module: EDEXCEL AS-LEVEL ${moduleFocus}.
+        - MARK TYPES:
+          * 'M' marks (Method): Awarded for knowing a method and attempting to apply it.
+          * 'A' marks (Accuracy): Can ONLY be awarded if the relevant 'M' marks are earned. All A marks are 'cao' unless stated as 'ft'.
+          * 'B' marks (Unconditional Accuracy): Independent of M marks.
+        - ABBREVIATIONS IN MARK SCHEME: 
+          * 'bod' (benefit of doubt), 'ft' (follow through correct logic on wrong values).
+          * 'cao' (correct answer only), 'cso' (correct solution only - no errors allowed).
+          * 'isw' (ignore subsequent working - wrong working after correct answer is ignored).
+          * 'awrt' (answers which round to), 'oe' (or equivalent), 'dep' (dependent).
+        - MULTIPLE ATTEMPTS: If either all attempts are crossed out OR none are crossed out, mark ALL the attempts and score the HIGHEST single attempt.
+        - PURE MATH SPECIFICS:
+          * Differentiation: Method mark requires power of at least one term decreased by 1 (x^n -> x^(n-1)).
+          * Integration: Method mark requires power of at least one term increased by 1 (x^n -> x^(n+1)).
+          * Exact answers: If an exact answer/surd is required, candidates lose marks if they resort to rounded decimals.
+          * Formulas must be correct to gain Method marks if not explicitly quoted.
       `;
     } 
-    // قواعد الـ AS Biology الجديدة من إيديكسل
+    // قواعد M1 و S1
+    else if (sub === 'as_math_m1' || sub === 'as_math_s1') {
+      const moduleFocus = sub === 'as_math_m1' ? 'Mechanics 1' : 'Statistics 1';
+      subjectSpecificRules = `
+        - Focus Module: EDEXCEL AS-LEVEL ${moduleFocus}.
+        - Apply standard Edexcel math marks ('M' for Method, 'A' for accuracy, 'B' for independent accuracy).
+        - In the 'keywords_analysis' response field, clearly break down: "Awarded Marks (M/A/B)" and "Missed Marks/Steps".
+      `;
+    } 
     else if (sub === 'as_biology') {
       subjectSpecificRules = `
         - Focus Module: EDEXCEL AS-LEVEL BIOLOGY.
-        - Pay meticulous attention to biological terminology and exact wording (e.g., active site, condensation reaction, ester bonds, tertiary structure).
-        - Focus on command words:
-          * 'Describe': Candidate must state the points of a topic / give characteristics.
-          * 'Explain': Candidate must provide scientific reasoning/justification.
-        - Pay close attention to experimental questions (CPACs/practical skills) including control variables, validity, and reliability.
+        - Pay meticulous attention to biological terminology and exact wording (e.g., active site, condensation reaction).
+        - Focus on command words (Describe vs Explain).
       `;
     }
-    // بقية المواد الأساسية
-    else if (sub === 'biology') {
-      subjectSpecificRules = `- Apply strict keyword rules (e.g., 'denatured' not 'killed' for enzymes).`;
-    } else if (sub === 'chemistry') {
-      subjectSpecificRules = `- Pay extreme attention to chemical formulas, balanced equations, and state symbols if requested.`;
-    } else if (sub === 'physics') {
-      subjectSpecificRules = `- Check strictly for correct physical units (J, W, N, Ω) in the final answer.`;
-    } else if (sub === 'math') {
-      subjectSpecificRules = `
-        - Focus heavily on Step-by-step Working (M marks for method, A marks for accuracy).
-        - Use the 'keywords_analysis' field to break down "Correct Steps" and "Incorrect/Missing Steps".
-      `;
-    }
+    else if (sub === 'biology') subjectSpecificRules = `- Apply strict keyword rules (e.g., 'denatured' not 'killed').`;
+    else if (sub === 'chemistry') subjectSpecificRules = `- Pay extreme attention to chemical formulas and balanced equations.`;
+    else if (sub === 'physics') subjectSpecificRules = `- Check strictly for correct physical units.`;
+    else if (sub === 'math') subjectSpecificRules = `- Focus heavily on Step-by-step Working (M marks and A marks).`;
 
     return `
       You are an official, highly precise senior chief examiner for ${examBoard.toUpperCase()} IGCSE/AS-Level ${sub.toUpperCase()}.
@@ -156,17 +143,15 @@ export default function App() {
       ${subjectSpecificRules}
 
       STRICT GRADING ACCURACY RULES:
-      1. Conduct a meticulous, word-by-word analysis of the student's response.
-      2. Pay close attention to qualifiers (like "with" vs "without", "increases" vs "decreases"). Never mistake a negative statement for a positive one.
-      3. Provide clear, structured feedback explaining exactly which marks were awarded and why, quoting the matched phrases.
-
-      STRICT FOCUS RULE: Refuse any conversation outside exam grading.
+      1. Conduct a meticulous, word-by-word analysis of the student's response against the Mark Scheme.
+      2. Provide clear, structured feedback explaining exactly which marks were awarded and why, quoting the matched steps.
+      3. Refuse any conversation outside exam grading.
 
       You MUST return your response strictly as a JSON object with these keys:
       {
         "score": "X/Total", 
         "summary": "Precise grading summary based on examiner guidelines", 
-        "keywords_analysis": "Detail which critical keywords/steps/marks were present and which were missing", 
+        "keywords_analysis": "Detail which critical steps/marks were present and which were missing", 
         "verdict": "Syllabus understanding check", 
         "tip": "One clear constructive tip to help them get full marks next time"
       }
@@ -256,7 +241,6 @@ export default function App() {
     return String(data);
   };
 
-  // اختيار قائمة المواد بناءً على البورد الحالي
   const activeSubjectList = board === 'cambridge' ? cambridgeSubjects : edexcelSubjects;
 
   return (
