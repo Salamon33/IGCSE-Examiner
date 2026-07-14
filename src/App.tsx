@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 // تكييف واجهة البيانات لتقبل مرونة التقارير بين المواد العلمية والرياضيات
 interface GradingResult {
