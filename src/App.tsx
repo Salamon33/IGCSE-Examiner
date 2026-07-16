@@ -14,17 +14,27 @@ type SubjectType =
   | 'as_biology' | 'as_math_p1' | 'as_math_p2' | 'as_math_m1' | 'as_math_s1';
 
 type BoardType = 'cambridge' | 'edexcel';
+type TabType = 'grading' | 'study';
 
 export default function App() {
+  // Global States (Apply to both modes)
   const [apiKey, setApiKey] = useState('');
   const [subject, setSubject] = useState<SubjectType>('biology');
   const [board, setBoard] = useState<BoardType>('cambridge');
+  const [activeTab, setActiveTab] = useState<TabType>('grading');
+  const [error, setError] = useState('');
+
+  // Grading Mode States
   const [question, setQuestion] = useState('');
   const [markScheme, setMarkScheme] = useState('');
   const [studentAnswer, setStudentAnswer] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [loadingGrading, setLoadingGrading] = useState(false);
   const [result, setResult] = useState<GradingResult | null>(null);
+
+  // Study Mode States
+  const [studyTopic, setStudyTopic] = useState('');
+  const [studyQuestions, setStudyQuestions] = useState('');
+  const [loadingStudy, setLoadingStudy] = useState(false);
 
   // تعريف قوائم المواد لكل جهة اختبار ديناميكياً
   const cambridgeSubjects = [
@@ -49,6 +59,7 @@ export default function App() {
   const handleBoardChange = (selectedBoard: BoardType) => {
     setBoard(selectedBoard);
     setResult(null);
+    setStudyQuestions('');
     if (selectedBoard === 'cambridge') {
       const validCie = ['biology', 'chemistry', 'physics', 'math'];
       if (!validCie.includes(subject)) {
@@ -84,14 +95,14 @@ export default function App() {
       boardSpecificRules = `
       OFFICIAL EDEXCEL GENERAL MARKING GUIDANCE:
       1. POSITIVE MARKING: Apply mark schemes positively. Reward candidates for what they have shown they can do rather than penalising for omissions.
-      2. OBJECTIVE GRADING: All candidates receive the same treatment. Award full marks if deserved. Award zero marks if the candidate's response is not worthy of credit.
+      2. OBJECTIVE GRADING: All candidates receive the same treatment. Award full marks if deserved. Award full marks if the candidate's response is worthy of credit.
       3. CROSSED OUT WORK: Crossed-out work should be marked UNLESS the candidate has replaced it with an alternative response.
       `;
     }
 
     let subjectSpecificRules = '';
     
-    // قواعد P1 و P2 الحصرية للرياضيات البحتة بناءً على دليلك
+    // قواعد P1 و P2 الحصرية للرياضيات البحتة
     if (sub === 'as_math_p1' || sub === 'as_math_p2') {
       const moduleFocus = sub === 'as_math_p1' ? 'Pure Mathematics 1' : 'Pure Mathematics 2';
       subjectSpecificRules = `
@@ -164,7 +175,7 @@ export default function App() {
       return;
     }
 
-    setLoading(true);
+    setLoadingGrading(true);
     setError('');
     setResult(null);
 
@@ -210,7 +221,62 @@ export default function App() {
       console.error(err);
       setError(err.message || 'An error occurred during grading.');
     } finally {
-      setLoading(false);
+      setLoadingGrading(false);
+    }
+  };
+
+  const handleStudyGenerate = async () => {
+    if (!apiKey || !studyTopic) {
+      setError('Please enter your Groq API key and a topic to generate questions.');
+      return;
+    }
+
+    setLoadingStudy(true);
+    setError('');
+    setStudyQuestions('');
+
+    try {
+      const cleanKey = apiKey.trim();
+      const systemInstruction = `
+        You are an expert ${board.toUpperCase()} ${subject.toUpperCase()} tutor. 
+        The student has just studied a topic and wants to test their knowledge.
+        Your task: Generate 3 high-quality Past Papers style questions related to the provided topic.
+        Format your response clearly with Markdown. Include the questions, and below each question, provide a subtle hint (without revealing the full answer).
+      `;
+      const userPrompt = `I have just finished studying: ${studyTopic}. Please give me 3 exam-style questions to test my understanding.`;
+
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${cleanKey}`
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: systemInstruction },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.5
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData?.error?.message || `Groq Server Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const textResponse = data.choices?.[0]?.message?.content;
+
+      if (!textResponse) throw new Error('No response returned from Groq Engine.');
+
+      setStudyQuestions(textResponse);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'An error occurred generating study questions.');
+    } finally {
+      setLoadingStudy(false);
     }
   };
 
@@ -247,9 +313,10 @@ export default function App() {
     <div style={{ fontFamily: 'system-ui, sans-serif', maxWidth: '750px', margin: '30px auto', padding: '25px', backgroundColor: '#ffffff', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
       <header style={{ textAlign: 'center', marginBottom: '25px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>
         <h1 style={{ color: currentTheme.primary, margin: '0 0 5px 0', transition: 'color 0.3s' }}>⚡ Multi-Subject AI Examiner</h1>
-        <p style={{ color: '#5f6368', margin: 0 }}>Super-Fast, Context-Aware Grading</p>
+        <p style={{ color: '#5f6368', margin: 0 }}>Super-Fast, Context-Aware Grading & Study Tool</p>
       </header>
 
+      {/* Global Settings */}
       <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginBottom: '20px' }}>
         <div style={{ flex: '2', minWidth: '250px', background: currentTheme.lightBg, padding: '15px', borderRadius: '8px', border: `1px solid ${currentTheme.border}` }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', color: currentTheme.primary }}>🔑 Groq API Key:</label>
@@ -266,7 +333,7 @@ export default function App() {
 
         <div style={{ flex: '1', minWidth: '180px', background: '#f8f9fa', padding: '15px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>📚 Subject:</label>
-          <select value={subject} onChange={(e) => { setSubject(e.target.value as SubjectType); setResult(null); }} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', fontWeight: 'bold', color: currentTheme.primary, outline: 'none', cursor: 'pointer' }}>
+          <select value={subject} onChange={(e) => { setSubject(e.target.value as SubjectType); setResult(null); setStudyQuestions(''); }} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', fontWeight: 'bold', color: currentTheme.primary, outline: 'none', cursor: 'pointer' }}>
             {activeSubjectList.map((sub) => (
               <option key={sub.id} value={sub.id}>{sub.label}</option>
             ))}
@@ -274,40 +341,93 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        <div>
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>1. Question:</label>
-          <textarea rows={2} value={question} onChange={(e) => setQuestion(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
-        </div>
-        <div>
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>2. Official Mark Scheme:</label>
-          <textarea rows={3} value={markScheme} onChange={(e) => setMarkScheme(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
-        </div>
-        <div>
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>3. Student's Answer:</label>
-          <textarea rows={3} value={studentAnswer} onChange={(e) => setStudentAnswer(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
-        </div>
-
-        {error && <div style={{ background: '#fce8e6', color: '#c5221f', padding: '12px', borderRadius: '6px', fontWeight: 'bold' }}>⚠️ {error}</div>}
-
-        <button onClick={handleGrade} disabled={loading} style={{ background: loading ? '#b0bec5' : currentTheme.primary, color: 'white', border: 'none', padding: '15px', fontSize: '1.1rem', fontWeight: 'bold', borderRadius: '8px', cursor: loading ? 'not-allowed' : 'pointer' }}>
-          {loading ? 'AI Chief Examiner is Analyzing...' : `Grade ${board.toUpperCase()} ${subject.toUpperCase()} 📝`}
+      {/* Tabs Navigation */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '2px solid #e0e0e0', paddingBottom: '10px' }}>
+        <button 
+          onClick={() => { setActiveTab('grading'); setError(''); }}
+          style={{ flex: 1, padding: '12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', border: 'none', background: activeTab === 'grading' ? currentTheme.primary : '#f1f3f4', color: activeTab === 'grading' ? 'white' : '#5f6368', transition: '0.3s' }}
+        >
+          📝 Examiner Mode (قسم التصحيح)
+        </button>
+        <button 
+          onClick={() => { setActiveTab('study'); setError(''); }}
+          style={{ flex: 1, padding: '12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', border: 'none', background: activeTab === 'study' ? currentTheme.primary : '#f1f3f4', color: activeTab === 'study' ? 'white' : '#5f6368', transition: '0.3s' }}
+        >
+          🧠 Study Mode (قسم المذاكرة)
         </button>
       </div>
 
-      {result && (
-        <div style={{ marginTop: '35px', borderTop: '2px solid #e8eaed', paddingTop: '20px' }}>
-          <h2 style={{ color: currentTheme.primary, marginBottom: '20px' }}>📊 Official Examiner Report</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ background: currentTheme.lightBg, borderLeft: `5px solid ${currentTheme.primary}`, padding: '15px', borderRadius: '6px' }}><strong>🏆 Score:</strong> <span style={{ fontSize: '1.3rem', fontWeight: 'bold' }}>{result.score}</span></div>
-            <div style={{ background: '#f1f3f4', borderLeft: '5px solid #5f6368', padding: '15px', borderRadius: '6px' }}><strong>📝 Summary:</strong> {result.summary}</div>
-            <div style={{ background: '#e6f4ea', borderLeft: '5px solid #137333', padding: '15px', borderRadius: '6px' }}>
-              <strong>🔍 {subject.includes('math') ? 'Steps & Marks Analysis' : 'Keyword Analysis'}:</strong>
-              <div style={{ marginTop: '8px' }}>{renderKeywordsAnalysis(result.keywords_analysis)}</div>
-            </div>
-            <div style={{ background: '#fef7e0', borderLeft: '5px solid #b06000', padding: '15px', borderRadius: '6px' }}><strong>⚠️ Verdict:</strong> {result.verdict}</div>
-            <div style={{ background: '#fce8e6', borderLeft: '5px solid #c5221f', padding: '15px', borderRadius: '6px' }}><strong>💡 Tip:</strong> {result.tip}</div>
+      {error && <div style={{ background: '#fce8e6', color: '#c5221f', padding: '12px', borderRadius: '6px', fontWeight: 'bold', marginBottom: '15px' }}>⚠️ {error}</div>}
+
+      {/* Grading Content */}
+      {activeTab === 'grading' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>1. Question:</label>
+            <textarea rows={2} value={question} onChange={(e) => setQuestion(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
           </div>
+          <div>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>2. Official Mark Scheme:</label>
+            <textarea rows={3} value={markScheme} onChange={(e) => setMarkScheme(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>3. Student's Answer:</label>
+            <textarea rows={3} value={studentAnswer} onChange={(e) => setStudentAnswer(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
+          </div>
+
+          <button onClick={handleGrade} disabled={loadingGrading} style={{ background: loadingGrading ? '#b0bec5' : currentTheme.primary, color: 'white', border: 'none', padding: '15px', fontSize: '1.1rem', fontWeight: 'bold', borderRadius: '8px', cursor: loadingGrading ? 'not-allowed' : 'pointer' }}>
+            {loadingGrading ? 'AI Chief Examiner is Analyzing...' : `Grade ${board.toUpperCase()} ${subject.toUpperCase()} 📝`}
+          </button>
+
+          {result && (
+            <div style={{ marginTop: '25px', borderTop: '2px solid #e8eaed', paddingTop: '20px' }}>
+              <h2 style={{ color: currentTheme.primary, marginBottom: '20px' }}>📊 Official Examiner Report</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ background: currentTheme.lightBg, borderLeft: `5px solid ${currentTheme.primary}`, padding: '15px', borderRadius: '6px' }}><strong>🏆 Score:</strong> <span style={{ fontSize: '1.3rem', fontWeight: 'bold' }}>{result.score}</span></div>
+                <div style={{ background: '#f1f3f4', borderLeft: '5px solid #5f6368', padding: '15px', borderRadius: '6px' }}><strong>📝 Summary:</strong> {result.summary}</div>
+                <div style={{ background: '#e6f4ea', borderLeft: '5px solid #137333', padding: '15px', borderRadius: '6px' }}>
+                  <strong>🔍 {subject.includes('math') ? 'Steps & Marks Analysis' : 'Keyword Analysis'}:</strong>
+                  <div style={{ marginTop: '8px' }}>{renderKeywordsAnalysis(result.keywords_analysis)}</div>
+                </div>
+                <div style={{ background: '#fef7e0', borderLeft: '5px solid #b06000', padding: '15px', borderRadius: '6px' }}><strong>⚠️ Verdict:</strong> {result.verdict}</div>
+                <div style={{ background: '#fce8e6', borderLeft: '5px solid #c5221f', padding: '15px', borderRadius: '6px' }}><strong>💡 Tip:</strong> {result.tip}</div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Study Content */}
+      {activeTab === 'study' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ background: '#e8f0fe', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #1a73e8' }}>
+            <p style={{ margin: 0, color: '#1a73e8', fontWeight: 'bold' }}>
+              ℹ️ Study Mode: Enter a topic you just studied. The AI will generate Past Papers style questions to test your understanding.
+            </p>
+          </div>
+          <div>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>Topic Studied (الموضوع اللي ذاكرته):</label>
+            <textarea 
+              rows={3} 
+              placeholder="e.g., Mitosis in Biology, or Integration in Pure Math..." 
+              value={studyTopic} 
+              onChange={(e) => setStudyTopic(e.target.value)} 
+              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} 
+            />
+          </div>
+
+          <button onClick={handleStudyGenerate} disabled={loadingStudy} style={{ background: loadingStudy ? '#b0bec5' : currentTheme.primary, color: 'white', border: 'none', padding: '15px', fontSize: '1.1rem', fontWeight: 'bold', borderRadius: '8px', cursor: loadingStudy ? 'not-allowed' : 'pointer' }}>
+            {loadingStudy ? 'Generating Past Paper Questions...' : `Test Me on ${subject.toUpperCase()} 🧠`}
+          </button>
+
+          {studyQuestions && (
+            <div style={{ marginTop: '25px', borderTop: '2px solid #e8eaed', paddingTop: '20px' }}>
+              <h2 style={{ color: currentTheme.primary, marginBottom: '20px' }}>📄 Generated Study Questions</h2>
+              <div style={{ background: '#f8f9fa', border: '1px solid #ddd', padding: '20px', borderRadius: '8px', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
+                {studyQuestions}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
